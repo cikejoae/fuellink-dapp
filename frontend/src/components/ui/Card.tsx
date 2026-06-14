@@ -6,9 +6,10 @@ interface CardProps {
   className?: string
   glow?: 'cyan' | 'orange' | 'purple' | 'none'
   hover?: boolean
+  onClick?: () => void
 }
 
-export function Card({ children, className, glow = 'none', hover = false }: CardProps) {
+export function Card({ children, className, glow = 'none', hover = false, onClick }: CardProps) {
   const glows = {
     cyan:   'hover:border-fuel-cyan/40 hover:shadow-[0_0_30px_rgba(0,229,255,0.12)]',
     orange: 'hover:border-fuel-orange/40 hover:shadow-[0_0_30px_rgba(255,107,53,0.12)]',
@@ -17,11 +18,15 @@ export function Card({ children, className, glow = 'none', hover = false }: Card
   }
 
   return (
-    <div className={clsx(
-      'glass rounded-2xl p-6',
-      hover && `transition-all duration-300 ${glows[glow]}`,
-      className,
-    )}>
+    <div
+      className={clsx(
+        'glass rounded-2xl p-6',
+        hover && `transition-all duration-300 ${glows[glow]}`,
+        onClick && 'cursor-pointer',
+        className,
+      )}
+      onClick={onClick}
+    >
       {children}
     </div>
   )

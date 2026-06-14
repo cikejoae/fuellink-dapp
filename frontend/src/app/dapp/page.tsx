@@ -1,40 +1,22 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { motion } from 'framer-motion'
-import { Zap, TrendingUp, Layers, Users, ArrowUpRight, Fuel } from 'lucide-react'
+import { Zap, TrendingUp, Layers, ArrowUpRight, Fuel } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { getTier } from '@/lib/contracts'
+import { useFuelTokens } from '@/hooks/useFuelTokens'
+import { useStaking } from '@/hooks/useStaking'
 
-// Mock data — replace with real contract reads via wagmi useReadContract
-const MOCK = {
-  fuelBalance:    1250,
-  fuelxBalance:   84.3,
-  stakingAPY:     12.5,
-  totalStaked:    45_000_000,
-  pendingRewards: 23.7,
-  usdtEarned:     142.80,
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-fuel-border rounded ${className}`} />
 }
-
-const STATS = [
-  { label: '$FUEL Balance',        value: MOCK.fuelBalance.toLocaleString(), unit: '$FUEL',   icon: Zap,       color: '#00E5FF' },
-  { label: '$FUELx (Gobernanza)',   value: MOCK.fuelxBalance.toFixed(2),     unit: '$FUELx',  icon: Layers,    color: '#7B2FBE' },
-  { label: 'Recompensas pendientes',value: MOCK.pendingRewards.toFixed(2),   unit: '$FUEL',   icon: TrendingUp,color: '#10B981' },
-  { label: 'USDT de STOs',          value: `$${MOCK.usdtEarned.toFixed(2)}`, unit: 'USDT',    icon: Fuel,      color: '#FF6B35' },
-]
-
-const ACTIVITY = [
-  { type: 'stake',    label: 'Staking 500 $FUEL',           time: 'hace 2h',    status: 'success' },
-  { type: 'reward',   label: 'Recompensa +12.4 $FUEL',      time: 'hace 5h',    status: 'success' },
-  { type: 'invest',   label: 'Inversión STO NanoGAS-001',   time: 'hace 1d',    status: 'success' },
-  { type: 'dividend', label: 'Dividendo +$8.50 USDT',       time: 'hace 3d',    status: 'success' },
-]
-
-const STATUS_COLOR: Record<string, string> = { success: '#10B981', pending: '#F59E0B', failed: '#EF4444' }
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount()
-  const tier = getTier(MOCK.fuelBalance)
+  const { fuelBalance, fuelxBalance, tier, isLoading: tokensLoading } = useFuelTokens()
+  const { stakes, pendingRewards, totalStaked, isLoading: stakingLoading } = useStaking()
+
+  const isLoading = tokensLoading || stakingLoading
 
   if (!isConnected) {
     return (
@@ -48,6 +30,13 @@ export default function DashboardPage() {
       </div>
     )
   }
+
+  const stats = [
+    { label: '$FUEL Balance',         value: fuelBalance  != null ? fuelBalance.toLocaleString(undefined, { maximumFractionDigits: 2 }) : null, unit: '$FUEL',  icon: Zap,       color: '#00E5FF' },
+    { label: '$FUELx (Gobernanza)',    value: fuelxBalance != null ? fuelxBalance.toFixed(2)                                              : null, unit: '$FUELx', icon: Layers,    color: '#7B2FBE' },
+    { label: 'Recompensas pendientes', value: pendingRewards != null ? pendingRewards.toFixed(2)                                          : null, unit: '$FUEL',  icon: TrendingUp,color: '#10B981' },
+    { label: 'Total stakeado (proto)', value: totalStaked != null ? (totalStaked / 1_000_000).toFixed(2) + 'M'                            : null, unit: '$FUEL',  icon: Fuel,      color: '#FF6B35' },
+  ]
 
   return (
     <div className="space-y-8 max-w-6xl">
@@ -63,13 +52,15 @@ export default function DashboardPage() {
         >
           <span className="w-2 h-2 rounded-full animate-pulse-slow" style={{ background: tier.color }} />
           {tier.name}
-          {tier.next && <span className="text-xs opacity-60 font-normal">· {tier.next - MOCK.fuelBalance} para siguiente tier</span>}
+          {tier.next && fuelBalance != null && (
+            <span className="text-xs opacity-60 font-normal">· {(tier.next - fuelBalance).toFixed(0)} para siguiente tier</span>
+          )}
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map((s, i) => (
+        {stats.map((s, i) => (
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 20 }}
@@ -85,7 +76,10 @@ export default function DashboardPage() {
                   </div>
                   <ArrowUpRight className="w-3.5 h-3.5 text-slate-600" />
                 </div>
-                <div className="font-display font-bold text-2xl text-white">{s.value}</div>
+                {isLoading || s.value == null
+                  ? <Skeleton className="h-8 w-24 mb-1" />
+                  : <div className="font-display font-bold text-2xl text-white">{s.value}</div>
+                }
                 <div className="text-xs text-slate-500 mt-1">{s.label}</div>
               </div>
             </Card>
@@ -100,12 +94,12 @@ export default function DashboardPage() {
           <h2 className="font-display font-semibold text-white">Acciones rápidas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { label: 'Hacer Staking',    href: '/dapp/stake',      color: '#7B2FBE', desc: 'Bloquea $FUEL → gana $FUELx' },
-              { label: 'Invertir en STO',  href: '/dapp/invest',     color: '#FF6B35', desc: 'Gasolineras tokenizadas' },
-              { label: 'Votar en DAO',     href: '/dapp/governance', color: '#00E5FF', desc: 'Participa en gobernanza' },
+              { label: 'Hacer Staking',    href: '/dapp/stake',      color: '#7B2FBE', glow: 'purple' as const, desc: 'Bloquea $FUEL → gana $FUELx' },
+              { label: 'Invertir en STO',  href: '/dapp/invest',     color: '#FF6B35', glow: 'orange' as const, desc: 'Gasolineras tokenizadas' },
+              { label: 'Votar en DAO',     href: '/dapp/governance', color: '#00E5FF', glow: 'cyan'   as const, desc: 'Participa en gobernanza' },
             ].map(a => (
               <a key={a.label} href={a.href}>
-                <Card hover className="cursor-pointer group" glow={a.color === '#7B2FBE' ? 'purple' : a.color === '#FF6B35' ? 'orange' : 'cyan'}>
+                <Card hover className="cursor-pointer group" glow={a.glow}>
                   <div className="w-8 h-8 rounded-lg mb-3 flex items-center justify-center" style={{ background: `${a.color}15`, border: `1px solid ${a.color}25` }}>
                     <Zap className="w-4 h-4" style={{ color: a.color }} />
                   </div>
@@ -119,47 +113,55 @@ export default function DashboardPage() {
           {/* Staking summary */}
           <Card className="mt-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display font-semibold text-white">Staking activo</h3>
-              <span className="text-xs text-fuel-cyan font-semibold">{MOCK.stakingAPY}% APY</span>
+              <h3 className="font-display font-semibold text-white">Stakes activos</h3>
+              {pendingRewards != null && pendingRewards > 0 && (
+                <span className="text-xs text-emerald-400 font-semibold">+{pendingRewards.toFixed(2)} $FUEL pendiente</span>
+              )}
             </div>
-            <div className="space-y-3">
-              {[
-                { amount: '500 $FUEL', weeks: '52 semanas', fuelx: '28.5 $FUELx', ends: '2026-06-14' },
-                { amount: '750 $FUEL', weeks: '26 semanas', fuelx: '18.2 $FUELx', ends: '2025-12-14' },
-              ].map((stake, i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-fuel-border last:border-0">
-                  <div>
-                    <div className="text-sm font-semibold text-white">{stake.amount}</div>
-                    <div className="text-xs text-slate-500">{stake.weeks} · vence {stake.ends}</div>
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ) : stakes.length === 0 ? (
+              <p className="text-sm text-slate-500 py-4 text-center">Sin stakes activos. <a href="/dapp/stake" className="text-fuel-cyan hover:underline">Stakear ahora →</a></p>
+            ) : (
+              <div className="space-y-3">
+                {stakes.slice(0, 3).map(s => (
+                  <div key={s.id} className="flex items-center justify-between py-3 border-b border-fuel-border last:border-0">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{s.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} $FUEL</div>
+                      <div className="text-xs text-slate-500">{s.lockWeeks} sem · vence {s.endDate.toLocaleDateString('es-MX')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-fuel-purple">{s.fuelxMinted.toFixed(2)} $FUELx</div>
+                      <div className="text-xs text-slate-500">acumulado</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-fuel-purple">{stake.fuelx}</div>
-                    <div className="text-xs text-slate-500">acumulado</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <div className="mt-4 flex justify-end">
               <Button variant="secondary" size="sm" href="/dapp/stake">Gestionar staking</Button>
             </div>
           </Card>
         </div>
 
-        {/* Activity feed */}
+        {/* Info panel */}
         <div>
-          <h2 className="font-display font-semibold text-white mb-4">Actividad reciente</h2>
-          <Card className="h-full">
-            <div className="space-y-4">
-              {ACTIVITY.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 pb-3 border-b border-fuel-border last:border-0 last:pb-0">
-                  <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: STATUS_COLOR[a.status] }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white truncate">{a.label}</div>
-                    <div className="text-xs text-slate-500">{a.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <h2 className="font-display font-semibold text-white mb-4">Tu posición</h2>
+          <Card className="h-full space-y-4">
+            {[
+              { label: 'Stakes activos',    value: isLoading ? '…' : String(stakes.length)                                         },
+              { label: 'FUELx total',       value: isLoading || fuelxBalance == null ? '…' : fuelxBalance.toFixed(2) + ' $FUELx'   },
+              { label: 'Poder de voto',     value: isLoading || fuelxBalance == null ? '…' : `√${fuelxBalance.toFixed(0)} = ${Math.sqrt(fuelxBalance).toFixed(2)}` },
+              { label: 'Protocolo stakeado',value: isLoading || totalStaked == null ? '…' : (totalStaked / 1_000_000).toFixed(1) + 'M $FUEL' },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between pb-3 border-b border-fuel-border last:border-0 last:pb-0">
+                <span className="text-sm text-slate-400">{item.label}</span>
+                <span className="text-sm font-semibold text-white">{item.value}</span>
+              </div>
+            ))}
           </Card>
         </div>
       </div>

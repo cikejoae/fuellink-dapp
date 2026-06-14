@@ -51,7 +51,7 @@ contract FuelStaking is ReentrancyGuard, Ownable, Pausable {
     uint256 public totalStaked;
     uint256 public rewardPool;      // deposited by Treasury
 
-    event Staked(address indexed user, uint256 stakeId, uint256 amount, uint256 weeks, uint256 fuelxMinted);
+    event Staked(address indexed user, uint256 stakeId, uint256 amount, uint256 lockWeeks, uint256 fuelxMinted);
     event Unstaked(address indexed user, uint256 stakeId, uint256 amount, uint256 fee);
     event RewardsClaimed(address indexed user, uint256 amount, uint256 fee);
     event RewardsDeposited(uint256 amount);
@@ -78,7 +78,7 @@ contract FuelStaking is ReentrancyGuard, Ownable, Pausable {
             fuelxMinted: fuelxAmount,
             startTime:   block.timestamp,
             lockWeeks:   weeks_,
-            active:      true,
+            active:      true
         }));
 
         totalStaked += amount;

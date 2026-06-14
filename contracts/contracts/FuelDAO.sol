@@ -79,7 +79,7 @@ contract FuelDAO is ReentrancyGuard, Ownable {
             votingEnd:   block.timestamp + DEBATE_PERIOD + VOTING_PERIOD,
             emergency:   false,
             executed:    false,
-            cancelled:   false,
+            cancelled:   false
         });
 
         emit ProposalCreated(id, msg.sender, description, false);
@@ -100,7 +100,7 @@ contract FuelDAO is ReentrancyGuard, Ownable {
             votingEnd:   block.timestamp + EMERGENCY_PERIOD,
             emergency:   true,
             executed:    false,
-            cancelled:   false,
+            cancelled:   false
         });
 
         emit ProposalCreated(id, msg.sender, description, true);
