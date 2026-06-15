@@ -1,18 +1,114 @@
 'use client'
 import { useAccount } from 'wagmi'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { motion } from 'framer-motion'
 import { Zap, TrendingUp, Layers, ArrowUpRight, Fuel } from 'lucide-react'
+import {
+  PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+} from 'recharts'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useFuelTokens } from '@/hooks/useFuelTokens'
-import { useStaking } from '@/hooks/useStaking'
+import { useStaking, type StakePosition } from '@/hooks/useStaking'
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-fuel-border rounded ${className}`} />
 }
 
+// ─── Allocation donut ─────────────────────────────────────────────────────────
+const ALLOC_COLORS = ['#00E5FF', '#7B2FBE', '#10B981']
+
+function AllocationChart({ fuelBalance, stakedFuel, pendingRewards }: {
+  fuelBalance: number | null
+  stakedFuel: number
+  pendingRewards: number | null
+}) {
+  const data = [
+    { name: 'FUEL líquido',  value: fuelBalance  ?? 0 },
+    { name: 'FUEL stakeado', value: stakedFuel },
+    { name: 'Recompensas',   value: pendingRewards ?? 0 },
+  ].filter(d => d.value > 0)
+
+  if (data.length === 0) return (
+    <div className="h-[160px] flex items-center justify-center text-xs text-slate-600">Sin datos</div>
+  )
+
+  return (
+    <div className="h-[160px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+            {data.map((_, i) => (
+              <Cell key={i} fill={ALLOC_COLORS[i % ALLOC_COLORS.length]} stroke="transparent" />
+            ))}
+          </Pie>
+          <RechartsTooltip
+            contentStyle={{ background: '#1A1F2E', border: '1px solid #2A2F42', borderRadius: '0.75rem', fontSize: 12, color: '#E2E8F0' }}
+            formatter={(v: number) => [v.toLocaleString(undefined, { maximumFractionDigits: 2 }), '']}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function AllocLegend({ fuelBalance, stakedFuel, pendingRewards }: {
+  fuelBalance: number | null
+  stakedFuel: number
+  pendingRewards: number | null
+}) {
+  const items = [
+    { label: 'FUEL líquido',  value: fuelBalance ?? 0,  color: ALLOC_COLORS[0] },
+    { label: 'FUEL stakeado', value: stakedFuel,          color: ALLOC_COLORS[1] },
+    { label: 'Recompensas',   value: pendingRewards ?? 0, color: ALLOC_COLORS[2] },
+  ]
+  return (
+    <div className="space-y-2 mt-2">
+      {items.map(it => (
+        <div key={it.label} className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: it.color }} />
+            <span className="text-slate-400">{it.label}</span>
+          </div>
+          <span className="text-white font-semibold">{it.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Stakes bar chart ─────────────────────────────────────────────────────────
+function StakesBarChart({ stakes }: { stakes: StakePosition[] }) {
+  const data = stakes.map((s, i) => ({
+    name:  `#${i + 1}`,
+    FUEL:  parseFloat(s.amount.toFixed(2)),
+    FUELx: parseFloat(s.fuelxMinted.toFixed(2)),
+    sem:   s.lockWeeks,
+  }))
+
+  return (
+    <div className="h-[160px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#2A2F42" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ background: '#1A1F2E', border: '1px solid #2A2F42', borderRadius: '0.75rem', fontSize: 12, color: '#E2E8F0' }}
+          />
+          <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: '#64748B' }} />
+          <Bar dataKey="FUEL"  fill="#00E5FF" radius={[4, 4, 0, 0]} maxBarSize={40} />
+          <Bar dataKey="FUELx" fill="#7B2FBE" radius={[4, 4, 0, 0]} maxBarSize={40} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { address, isConnected } = useAccount()
+  const { openConnectModal } = useConnectModal()
   const { fuelBalance, fuelxBalance, tier, isLoading: tokensLoading } = useFuelTokens()
   const { stakes, pendingRewards, totalStaked, isLoading: stakingLoading } = useStaking()
 
@@ -26,7 +122,7 @@ export default function DashboardPage() {
         </div>
         <h2 className="font-display text-2xl font-bold text-white mb-3">Conecta tu wallet</h2>
         <p className="text-slate-400 max-w-sm mb-8">Para acceder al dashboard, conecta tu wallet de Polygon PoS.</p>
-        <Button variant="primary" size="lg">Conectar Wallet</Button>
+        <Button variant="primary" size="lg" onClick={openConnectModal}>Conectar Wallet</Button>
       </div>
     )
   }
@@ -165,6 +261,37 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Portfolio charts — visible when there are active stakes */}
+      {!isLoading && stakes.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        >
+          {/* Allocation donut */}
+          <Card>
+            <h3 className="font-display font-semibold text-white text-sm mb-3">Distribución de activos</h3>
+            <AllocationChart
+              fuelBalance={fuelBalance}
+              stakedFuel={stakes.reduce((a, s) => a + s.amount, 0)}
+              pendingRewards={pendingRewards}
+            />
+            <AllocLegend
+              fuelBalance={fuelBalance}
+              stakedFuel={stakes.reduce((a, s) => a + s.amount, 0)}
+              pendingRewards={pendingRewards}
+            />
+          </Card>
+
+          {/* Stakes bar chart */}
+          <Card className="lg:col-span-2">
+            <h3 className="font-display font-semibold text-white text-sm mb-3">FUEL vs FUELx por stake</h3>
+            <StakesBarChart stakes={stakes} />
+          </Card>
+        </motion.div>
+      )}
     </div>
   )
 }

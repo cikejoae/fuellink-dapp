@@ -4,19 +4,68 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Zap, BarChart2, Vote, Settings, Menu, X, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, Zap, BarChart2, Vote, User, Menu, X, ArrowLeft } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useStaking } from '@/hooks/useStaking'
+import { useSTO } from '@/hooks/useSTO'
+import { CONTRACTS, isDeployed } from '@/lib/contracts'
 
-const NAV = [
+type NavBadge = { count?: number; dot?: boolean; color?: string }
+
+// ─── Badge dot/count component ────────────────────────────────────────────────
+function Badge({ badge }: { badge: NavBadge }) {
+  if (!badge.dot && !badge.count) return null
+  if (badge.count) {
+    return (
+      <span
+        className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+        style={{ background: badge.color ?? '#FF6B35', color: '#0B0F1A' }}
+      >
+        {badge.count}
+      </span>
+    )
+  }
+  return (
+    <span
+      className="ml-auto w-2 h-2 rounded-full flex-shrink-0"
+      style={{ background: badge.color ?? '#FF6B35' }}
+    />
+  )
+}
+
+const BASE_NAV = [
   { href: '/dapp',            label: 'Dashboard',   Icon: LayoutDashboard },
   { href: '/dapp/stake',      label: 'Staking',     Icon: Zap },
   { href: '/dapp/invest',     label: 'Inversiones', Icon: BarChart2 },
   { href: '/dapp/governance', label: 'Gobernanza',  Icon: Vote },
+  { href: '/dapp/profile',    label: 'Perfil',      Icon: User },
 ]
+
+// ─── Badges hook — reads live data for nav indicators ────────────────────────
+function useNavBadges() {
+  const { pendingRewards } = useStaking()
+  const sto = useSTO(CONTRACTS.STO_NGS001)
+
+  const stakingBadge: NavBadge =
+    pendingRewards != null && pendingRewards > 0.001
+      ? { dot: true, color: '#FF6B35' }
+      : {}
+
+  const investBadge: NavBadge =
+    isDeployed(CONTRACTS.STO_NGS001) && sto.userShares > 0
+      ? { dot: true, color: '#10B981' }
+      : {}
+
+  return {
+    '/dapp/stake':  stakingBadge,
+    '/dapp/invest': investBadge,
+  }
+}
 
 export default function DAppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const badges = useNavBadges()
 
   return (
     <div className="min-h-screen bg-fuel-bg flex">
@@ -40,8 +89,9 @@ export default function DAppLayout({ children }: { children: React.ReactNode }) 
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map(({ href, label, Icon }) => {
+          {BASE_NAV.map(({ href, label, Icon }) => {
             const active = pathname === href
+            const badge = (badges as Record<string, NavBadge>)[href] ?? {}
             return (
               <Link
                 key={href}
@@ -56,7 +106,10 @@ export default function DAppLayout({ children }: { children: React.ReactNode }) 
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 {label}
-                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-fuel-cyan" />}
+                {active
+                  ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-fuel-cyan" />
+                  : <Badge badge={badge} />
+                }
               </Link>
             )
           })}

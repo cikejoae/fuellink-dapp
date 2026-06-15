@@ -14,10 +14,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {},
-    mumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`,
+    amoy: {
+      url: `https://polygon-amoy.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 80001,
+      chainId: 80002,
     },
     polygon: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`,
@@ -26,7 +26,20 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: { polygon: process.env.POLYGONSCAN_API_KEY ?? '' },
+    apiKey: {
+      polygon: process.env.POLYGONSCAN_API_KEY ?? '',
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY ?? '',
+    },
+    customChains: [
+      {
+        network: 'polygonAmoy',
+        chainId: 80002,
+        urls: {
+          apiURL: 'https://api-amoy.polygonscan.com/api',
+          browserURL: 'https://amoy.polygonscan.com',
+        },
+      },
+    ],
   },
   paths: { sources: './contracts', tests: './test', cache: './cache', artifacts: './artifacts' },
 }

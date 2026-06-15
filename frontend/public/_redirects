@@ -1,0 +1,4 @@
+# Cloudflare Pages: serve the pre-rendered HTML for all routes.
+# Next.js static export generates individual index.html files per route,
+# so Cloudflare can resolve them directly. This catch-all handles deep links.
+/*    /index.html   200

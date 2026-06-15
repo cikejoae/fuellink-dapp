@@ -33,14 +33,23 @@ export function useFuelTokens() {
     query: { enabled: isDeployed(CONTRACTS.FUEL_TOKEN) },
   })
 
-  const fuelBalance  = fuelRaw  != null ? parseFloat(formatUnits(fuelRaw  as bigint, 18)) : null
-  const fuelxBalance = fuelxRaw != null ? parseFloat(formatUnits(fuelxRaw as bigint, 18)) : null
-  const totalSupply  = totalSupplyRaw != null ? parseFloat(formatUnits(totalSupplyRaw as bigint, 18)) : null
+  const { data: fuelxTotalRaw } = useReadContract({
+    address: CONTRACTS.FUELX_TOKEN,
+    abi: FUELX_TOKEN_ABI,
+    functionName: 'totalSupply',
+    query: { enabled: isDeployed(CONTRACTS.FUELX_TOKEN) },
+  })
+
+  const fuelBalance      = fuelRaw       != null ? parseFloat(formatUnits(fuelRaw       as bigint, 18)) : null
+  const fuelxBalance     = fuelxRaw      != null ? parseFloat(formatUnits(fuelxRaw      as bigint, 18)) : null
+  const totalSupply      = totalSupplyRaw != null ? parseFloat(formatUnits(totalSupplyRaw as bigint, 18)) : null
+  const fuelxTotalSupply = fuelxTotalRaw  != null ? parseFloat(formatUnits(fuelxTotalRaw  as bigint, 18)) : null
 
   return {
     fuelBalance,
     fuelxBalance,
     totalSupply,
+    fuelxTotalSupply,
     tier: getTier(fuelBalance ?? 0),
     isLoading: loadFuel || loadFuelx,
     fuelRaw:   fuelRaw  as bigint | undefined,

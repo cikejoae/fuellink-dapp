@@ -4,6 +4,7 @@ node_modules/
 .next/
 dist/
 build/
+out/
 artifacts/
 cache/
 typechain-types/

@@ -1,9 +1,9 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
-import { polygon, polygonMumbai } from 'wagmi/chains'
+import { polygon, polygonAmoy } from 'wagmi/chains'
 
 export const wagmiConfig = getDefaultConfig({
   appName: 'FuelLink',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ?? 'fuellink_dev',
-  chains: [polygon, polygonMumbai],
+  chains: [polygon, polygonAmoy],
   ssr: true,
 })

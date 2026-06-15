@@ -1,0 +1,24 @@
+name = "fuellink-dapp"
+pages_build_output_dir = "out"
+
+# Cloudflare Pages configuration.
+# Build command : npm run build   (or  cd frontend && npm run build  from repo root)
+# Output dir    : out/
+#
+# IMPORTANT — build-time env vars:
+# All NEXT_PUBLIC_* variables are inlined at build time (static export).
+# Set them as "Build environment variables" in the Cloudflare Pages dashboard:
+#
+#   NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID = <your id>
+#   NEXT_PUBLIC_ALCHEMY_API_KEY           = <your key>
+#   NEXT_PUBLIC_FUEL_TOKEN_ADDRESS        = <address>
+#   NEXT_PUBLIC_FUELX_TOKEN_ADDRESS       = <address>
+#   NEXT_PUBLIC_STAKING_ADDRESS           = <address>
+#   NEXT_PUBLIC_DAO_ADDRESS               = <address>
+#   NEXT_PUBLIC_TREASURY_ADDRESS          = <address>
+#   NEXT_PUBLIC_VESTING_ADDRESS           = <address>
+#   NEXT_PUBLIC_STO_ADDRESS               = <address>
+#   NEXT_PUBLIC_TIMELOCK_ADDRESS          = <address>
+#   NEXT_PUBLIC_USDT_ADDRESS              = <address>
+#
+# These values are baked into the bundle. Changing them requires a new build+deploy.

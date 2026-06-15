@@ -42,7 +42,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-fuel-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-600">© 2025 FuelLink INC. Todos los derechos reservados.</p>
+          <p className="text-xs text-slate-600">© 2026 FuelLink INC. Todos los derechos reservados.</p>
           <div className="flex gap-4">
             {['Política de privacidad', 'Términos de uso', 'Disclaimer'].map(t => (
               <a key={t} href="#" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">{t}</a>

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Zap, Lock, Info } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Zap, Lock, Info, Calculator, ChevronDown } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { parseUnits } from 'viem'
 import { Card } from '@/components/ui/Card'
@@ -21,6 +21,112 @@ const DURATION_OPTIONS = [
   { weeks: 52,  label: '1 año'   },
   { weeks: 104, label: '2 años'  },
 ]
+
+// ─── Simulator (no wallet required) ──────────────────────────────────────────
+function StakingSimulator() {
+  const [open, setOpen]       = useState(false)
+  const [simAmt, setSimAmt]   = useState('1000')
+  const [simWeeks, setSimWeeks] = useState(52)
+
+  const amt     = parseFloat(simAmt) || 0
+  const fuelxOut = calcFuelx(amt, simWeeks)
+  const multiplier = amt > 0 ? (fuelxOut / amt).toFixed(3) : '—'
+
+  // Comparison across all durations
+  const rows = DURATION_OPTIONS.map(o => ({
+    ...o,
+    fuelx:  calcFuelx(amt, o.weeks),
+    mult:   amt > 0 ? (calcFuelx(amt, o.weeks) / amt).toFixed(3) : '—',
+  }))
+
+  return (
+    <Card className="border-fuel-border/50">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Calculator className="w-4 h-4 text-fuel-purple" />
+          <span className="font-display font-semibold text-white text-sm">Simulador de staking</span>
+          <span className="text-xs text-slate-500">· sin wallet requerida</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Cantidad $FUEL</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={simAmt}
+                    onChange={e => setSimAmt(e.target.value)}
+                    className="w-full bg-fuel-bg border border-fuel-border rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-fuel-purple/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">Duración</label>
+                  <select
+                    value={simWeeks}
+                    onChange={e => setSimWeeks(Number(e.target.value))}
+                    className="w-full bg-fuel-bg border border-fuel-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-fuel-purple/50 transition-colors"
+                  >
+                    {DURATION_OPTIONS.map(o => (
+                      <option key={o.weeks} value={o.weeks}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Result highlight */}
+              <div className="glass rounded-xl p-4 border border-fuel-purple/20 text-center">
+                <div className="text-xs text-slate-500 mb-1">Recibirías</div>
+                <div className="text-2xl font-display font-bold text-fuel-purple">{fuelxOut.toLocaleString(undefined, { maximumFractionDigits: 2 })} $FUELx</div>
+                <div className="text-xs text-slate-500 mt-1">× {multiplier} multiplicador</div>
+              </div>
+
+              {/* Comparison table */}
+              <div>
+                <div className="text-xs text-slate-500 mb-2">Comparativa para {amt.toLocaleString()} $FUEL</div>
+                <div className="space-y-1.5">
+                  {rows.map(r => (
+                    <div
+                      key={r.weeks}
+                      onClick={() => setSimWeeks(r.weeks)}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all ${
+                        r.weeks === simWeeks
+                          ? 'bg-fuel-purple/10 border border-fuel-purple/25'
+                          : 'border border-transparent hover:border-fuel-border'
+                      }`}
+                    >
+                      <span className={`text-xs ${r.weeks === simWeeks ? 'text-white font-semibold' : 'text-slate-500'}`}>{r.label}</span>
+                      <div className="text-right">
+                        <span className={`text-xs font-semibold ${r.weeks === simWeeks ? 'text-fuel-purple' : 'text-slate-400'}`}>
+                          {amt > 0 ? r.fuelx.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'} $FUELx
+                        </span>
+                        <span className="text-xs text-slate-600 ml-2">×{r.mult}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  )
+}
 
 export default function StakePage() {
   const { address, isConnected } = useAccount()
@@ -180,6 +286,9 @@ export default function StakePage() {
           </div>
         </Card>
       )}
+
+      {/* Staking simulator */}
+      <StakingSimulator />
 
       {/* Active stakes */}
       <Card>

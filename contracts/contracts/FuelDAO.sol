@@ -38,6 +38,7 @@ contract FuelDAO is ReentrancyGuard, Ownable {
         address target;
         uint256 forVotes;
         uint256 againstVotes;
+        uint256 totalFuelxVoted; // raw FUELx of all voters — used for quorum check
         uint256 debateStart;
         uint256 votingStart;
         uint256 votingEnd;
@@ -68,18 +69,19 @@ contract FuelDAO is ReentrancyGuard, Ownable {
 
         uint256 id = ++proposalCount;
         proposals[id] = Proposal({
-            proposer:    msg.sender,
-            description: description,
-            callData:    data,
-            target:      target,
-            forVotes:    0,
-            againstVotes:0,
-            debateStart: block.timestamp,
-            votingStart: block.timestamp + DEBATE_PERIOD,
-            votingEnd:   block.timestamp + DEBATE_PERIOD + VOTING_PERIOD,
-            emergency:   false,
-            executed:    false,
-            cancelled:   false
+            proposer:        msg.sender,
+            description:     description,
+            callData:        data,
+            target:          target,
+            forVotes:        0,
+            againstVotes:    0,
+            totalFuelxVoted: 0,
+            debateStart:     block.timestamp,
+            votingStart:     block.timestamp + DEBATE_PERIOD,
+            votingEnd:       block.timestamp + DEBATE_PERIOD + VOTING_PERIOD,
+            emergency:       false,
+            executed:        false,
+            cancelled:       false
         });
 
         emit ProposalCreated(id, msg.sender, description, false);
@@ -89,18 +91,19 @@ contract FuelDAO is ReentrancyGuard, Ownable {
     function proposeEmergency(string calldata description, address target, bytes calldata data) external onlyOwner returns (uint256) {
         uint256 id = ++proposalCount;
         proposals[id] = Proposal({
-            proposer:    msg.sender,
-            description: description,
-            callData:    data,
-            target:      target,
-            forVotes:    0,
-            againstVotes:0,
-            debateStart: block.timestamp,
-            votingStart: block.timestamp,
-            votingEnd:   block.timestamp + EMERGENCY_PERIOD,
-            emergency:   true,
-            executed:    false,
-            cancelled:   false
+            proposer:        msg.sender,
+            description:     description,
+            callData:        data,
+            target:          target,
+            forVotes:        0,
+            againstVotes:    0,
+            totalFuelxVoted: 0,
+            debateStart:     block.timestamp,
+            votingStart:     block.timestamp,
+            votingEnd:       block.timestamp + EMERGENCY_PERIOD,
+            emergency:       true,
+            executed:        false,
+            cancelled:       false
         });
 
         emit ProposalCreated(id, msg.sender, description, true);
@@ -119,13 +122,15 @@ contract FuelDAO is ReentrancyGuard, Ownable {
         uint256 fuelxBal = fuelxToken.balanceOf(msg.sender);
         require(fuelxBal > 0, "DAO: no FUELx");
 
-        // Quadratic voting: cost increases quadratically
-        // votes = floor(sqrt(fuelxBal / 1e18))
+        // Quadratic voting: votes = floor(sqrt(fuelxBal / 1e18))
         uint256 votes = _sqrt(fuelxBal / 1e18);
         require(votes > 0, "DAO: insufficient FUELx for vote");
 
-        hasVoted[proposalId][msg.sender] = true;
+        hasVoted[proposalId][msg.sender]  = true;
         votePower[proposalId][msg.sender] = votes;
+
+        // Track raw FUELx participation for quorum check
+        p.totalFuelxVoted += fuelxBal;
 
         if (support) {
             p.forVotes += votes;
@@ -172,7 +177,9 @@ contract FuelDAO is ReentrancyGuard, Ownable {
         uint256 total     = p.forVotes + p.againstVotes;
         uint256 threshold = p.emergency ? emergencyThreshold : approvalThreshold;
 
-        if (total * 1e18 < quorum / 1e18) return State.Rejected; // quorum not met
+        // Quorum: total raw FUELx of all voters must meet minimum participation
+        if (p.totalFuelxVoted < quorum) return State.Rejected;
+        if (total == 0) return State.Rejected;
         if (p.forVotes * 10_000 >= total * threshold) return State.Queued;
         return State.Rejected;
     }

@@ -30,7 +30,7 @@ export function useStaking() {
   const { data: pendingRaw } = useReadContract({
     address: CONTRACTS.STAKING,
     abi: STAKING_ABI,
-    functionName: 'pendingRewards',
+    functionName: 'earned',
     args: address ? [address] : undefined,
     query: { enabled: !!address && stakingDeployed },
   })
@@ -78,6 +78,7 @@ export function useStaking() {
 
   return {
     stakes:         stakes.filter(s => s.active),
+    allStakes:      stakes,
     pendingRewards: pendingRaw != null ? parseFloat(formatUnits(pendingRaw as bigint, 18)) : null,
     totalStaked:    totalStakedRaw != null ? parseFloat(formatUnits(totalStakedRaw as bigint, 18)) : null,
     stakeCount,
